@@ -1,3 +1,15 @@
+r"""
+A robust string-to-html class that can do:
+    * 1-to-1 text display (not needing <pre> tag)
+    * urls to <a> tags
+    * ansi (eg windows) console colors
+    * vt100 (eg linux) console colors
+    * arbitrary user-defined pattern-to-html conversions
+        eg, turn a git hash into a link
+        addConversion(
+            r'(([0-9a-zA-Z]{7})|([0-9a-zA-Z]{40}))',
+            r'<a href="https://github.com/[user]/[project]/commit/\1">\1</a>')
+"""
 import typing
 import re
 from stringTools import ansiColorToHtml
@@ -5,21 +17,28 @@ from stringTools import ansiColorToHtml
 Txt2HtmlCanConvert = typing.Union[str,typing.TextIO,typing.BinaryIO]
 
 class Txt2Html:
-    """
+    r"""
     A robust string-to-html class that can do:
         * 1-to-1 text display (not needing <pre> tag)
         * urls to <a> tags
         * ansi (eg windows) console colors
         * vt100 (eg linux) console colors
         * arbitrary user-defined pattern-to-html conversions
-            eg, turn a git hash into a link
-            addConversion(r'(([0-9a-zA-Z]{7})|([0-9a-zA-Z]{40}))',r'<a href="https://github.com/[user]/[project]/commit/\1">\1</a>')
+        eg, turn a git hash into a link
+        addConversion(
+            r'(([0-9a-zA-Z]{7})|([0-9a-zA-Z]{40}))',
+            r'<a href="https://github.com/[user]/[project]/commit/\1">\1</a>')
     """
 
-    EMAIL_REGEX = re.compile('([a-z0-9_.]+[@][a-z0-9_]+([.][a-z0-9_]+)+)',re.DOTALL|re.IGNORECASE)
+    EMAIL_REGEX = re.compile(
+        r'([a-z0-9_.]+[@][a-z0-9_]+([.][a-z0-9_]+)+)',
+        re.DOTALL|re.IGNORECASE)
 
-    # TODO: I think I have a better version of this somewhere, but this should work for now
-    URL_REGEX = re.compile('([a-z0-9_]+[:]//[^\s]+)',re.DOTALL|re.IGNORECASE)
+    # TODO: I think I have a better version of this somewhere,
+    #       but this should work for now
+    URL_REGEX = re.compile(
+        r'([a-z0-9_]+[:]//[^\s]+)',
+        re.DOTALL|re.IGNORECASE)
 
     def __init__(self,
         userConversion:typing.Union[
@@ -27,7 +46,11 @@ class Txt2Html:
             typing.Tuple[typing.Union[str,typing.Pattern],str],
             typing.Iterable[typing.Tuple[typing.Union[str,typing.Pattern],str]]
             ]=None,
-        detectUrls=True,detectAnsi=True,detectVt100=False,detectEmail=True,fixedWidth=False):
+        detectUrls=True,
+        detectAnsi=True,
+        detectVt100=False,
+        detectEmail=True,
+        fixedWidth=False):
         """ """
         self.fixedWidth=True
         self.detectUrls=detectUrls
@@ -63,7 +86,7 @@ class Txt2Html:
         for pattern,replacement in self._userConversions:
             s=pattern.sub(replacement,s)
         return s
-    
+
     def _doAnsiConversion(self,s:str)->str:
         """
         perform all ansi (eg windows console) conversions
@@ -72,7 +95,7 @@ class Txt2Html:
         if s!=ret:
             self.fixedWidth=True
         return ret
-    
+
     def _doVt100Conversion(self,s:str)->str:
         """
         perform all vt100 (eg linux console) conversions
@@ -92,13 +115,13 @@ class Txt2Html:
         perform all url conversions
         """
         return self.URL_REGEX.sub(r'<a href="\1">\1</a>',s)
-    
+
     def _doEmailConversion(self,s:str)->str:
         """
         perform all email address conversions
         """
         return self.EMAIL_REGEX.sub(r'<a href="mailto:\1">\1</a>',s)
-    
+
     def convert(self,data:Txt2HtmlCanConvert)->str:
         """
         perform all selected conversions
@@ -122,22 +145,38 @@ class Txt2Html:
             s=self._doEmailConversion(s)
         s=self._doUserConversions(s)
         if self.fixedWidth:
-            s=f'<span style="font-family:ui-monospace,monospace; background-color:black">{s}</span>'
+            css=';'.join((
+                'font-family:ui-monospace,monospace',
+                'background-color:black'))
+            s=f'<span style="{css}">{s}</span>'
         return s
     def __call__(self,data:Txt2HtmlCanConvert)->str:
         return self.convert(data)
-    
+
 def txt2Html(
     data:Txt2HtmlCanConvert,
     userConversion:typing.Union[
         typing.Tuple[typing.Union[str,typing.Pattern],str],
         typing.Iterable[typing.Tuple[typing.Union[str,typing.Pattern],str]]
         ]=(),
-    detectUrls=True,detectAnsi=True,detectVt100=False,detectEmail=True,fixedWidth=False):
-    """ """
-    return Txt2Html(userConversion,detectUrls,detectAnsi,detectVt100,detectEmail,fixedWidth)(data)
+    detectUrls=True,
+    detectAnsi=True,
+    detectVt100=False,
+    detectEmail=True,
+    fixedWidth=False
+    )->str:
+    """
+    Shortcut for creating a Txt2Html object
+    and then calling its convert() with data as input
+    """
+    return Txt2Html(
+        userConversion,detectUrls,detectAnsi,
+        detectVt100,detectEmail,fixedWidth)(data)
 
 def test():
+    """
+    unit test for proper handling of conversions
+    """
     def t(s,u=None):
         print(s)
         s=txt2Html(s,userConversion=u,fixedWidth=True)
@@ -146,6 +185,10 @@ def test():
     t("hello world")
     t("hello http://toshistation.com")
     t("Hello gradma@gmail.com")
-    t("Hello 1234567 github",(r'(([0-9a-zA-Z]{7})|([0-9a-zA-Z]{40}))',r'<a href="https://github.com/[user]/[project]/commit/\1">\1</a>'))
+    t("Hello 1234567 github",(
+        r'(([0-9a-zA-Z]{7})|([0-9a-zA-Z]{40}))',
+        r'<a href="https://github.com/[user]/[project]/commit/\1">\1</a>'
+        ))
 
-test()
+if __name__=='__main__':
+    test()

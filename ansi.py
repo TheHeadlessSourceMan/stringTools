@@ -1,9 +1,13 @@
+"""
+Quick-and-dirty tools for managing ANSI colors,
+including converting colored terminal text to HTML
+"""
 import typing
 import re
 from enum import Enum
 
 
-ANSI_CLEAR_SCREEN=u"{}[2J{}[;H".format(chr(27),chr(27))
+ANSI_CLEAR_SCREEN="{}[2J{}[;H".format(chr(27),chr(27))
 class ANSI_COLORS(Enum):
     """
     ANSI terminal color codes
@@ -49,8 +53,9 @@ ansiEscapeCodeFinderRe=re.compile(r'\x1b\[(.*?)m')
 def ansiColorToHtml(ansiColoredString:str)->str:
     """
     take a string with ansi color codes and return an html string
-    
-    NOTE: this html is JUST THE COLORS, not any curses stuff, fixed-width font, or newline handling
+
+    NOTE: this html is JUST THE COLORS
+    not any curses stuff, fixed-width font, or newline handling
     """
     # make this a list so it gets shared with the child function
     spancount:typing.List[int]=[0]
@@ -76,20 +81,23 @@ def ansiColorToHtml(ansiColoredString:str)->str:
                 continue
             try:
                 style=ansi2CSS[code]
-            except IndexError:
-                raise Exception(f'unknown ANSI escape code {code}')
+            except IndexError as e:
+                raise IndexError(f'unknown ANSI escape code {code}') from e
             span=f'<span style="{style}">'
             here=len(ret)
             ret.append(span) # assume the basics, then modify as needed
             isFG=(style[0]=='c')
             if isFG:
                 if currentFG[0] is not None:
-                    # if there is a current foreground color, we need to close it first!
+                    # if there is a current foreground color,
+                    # we need to close it first!
                     if lastWasFG[0]:
-                        # current span is the foreground color span, so close it
+                        # current span is the foreground color span,
+                        # so close it
                         ret.insert(here,'</span>')
                     elif currentBG[0] is not None:
-                        # there is a background inside the foreground, so we have to close it, then reopen it after
+                        # there is a background inside the foreground,
+                        # so we have to close it, then reopen it after
                         ret.insert(here,'</span></span>')
                         ret.append(currentBG[0])
                 else:
@@ -98,12 +106,15 @@ def ansiColorToHtml(ansiColoredString:str)->str:
                 currentFG[0]=span
             else:
                 if currentBG[0] is not None:
-                    # if there is a current background color, we need to close it first!
+                    # if there is a current background color,
+                    # we need to close it first!
                     if currentBG[0]:
-                        # current span is the backgruond color span, so close it
+                        # current span is the backgruond color span,
+                        # so close it
                         ret.insert(here,'</span>')
                     elif currentFG[0] is not None:
-                        # there is a foreground inside the background, so we have to close it, then reopen it after
+                        # there is a foreground inside the background,
+                        # so we have to close it, then reopen it after
                         ret.insert(here,'</span></span>')
                         ret.append(currentFG[0])
                 else:

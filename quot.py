@@ -1,3 +1,7 @@
+r"""
+Handle quoted/encoded strings eg
+    "Momma says \"hello\"\n"
+"""
 import sys
 import re
 
@@ -7,6 +11,9 @@ QUOTE_REGEX=re.compile('.?'+QUOTE_REGEX_STR)
 
 
 def test():
+    """
+    unit test for proper handling of quote strings
+    """
     tests=[
         'x"abc"y',
         "x'abc'y",
@@ -14,7 +21,6 @@ def test():
         'x"ab\\"c"y',
         "x'ab\\'c'y",
         ]
-
     for t in tests:
         print(t,QUOTE_REGEX.match(t).group("contents"))
 

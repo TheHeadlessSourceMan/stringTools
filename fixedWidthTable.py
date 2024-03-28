@@ -1,3 +1,10 @@
+"""
+Tools for parsing and printing text fixed-with tables, eg
+    Name    Age   Occupation
+    ----    ---   ----------
+    Cindy   21    Nurse
+    Doogie  14    Doctor
+"""
 import typing
 import re
 import pandas as pd
@@ -37,7 +44,7 @@ def parseFixedWidthTable(
     )->typing.List[typing.Dict[str,str]]:
     """
     parse a fixed width table into a list of dicts (json compatible)
-    
+
     see also: parseFixedWidthTablePandas()
     """
     header,lines=_parseFixedWidthTable(data)
@@ -55,7 +62,7 @@ def parseFixedWidthTablePandas(
     )->typing.List[typing.Dict[str,str]]:
     """
     parse a fixed width table into a list of dicts (json compatible)
-    
+
     see also: parseFixedWidthTablePandas()
     """
     header,lines=_parseFixedWidthTable(data)

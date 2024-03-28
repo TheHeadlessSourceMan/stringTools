@@ -20,13 +20,14 @@ _VersionSegmentRe=re.compile(r"""\d+|([a-z]+(_[a-z]+)*)""",re.IGNORECASE)
 class Version:
     """
     Decipher software version numbers so they can be compared.
-    
+
     Note that:
         Version("1.0")==Version("1.0.5")
     but
         Version("1.0.0")!=Version("1.0.5")
-    This design was chosen so you can determine if a version is in the 1.0 branch.
-    
+    (This design was chosen so you can determine if a version
+    is in the 1.0 branch.)
+
     NOTE: handles:
         versions - "1.0"
         indefinite sub-versions - "1.0.3.7.21.8"
@@ -36,7 +37,7 @@ class Version:
         formats starting with "v"/"ver"/"version" - "Version_1_0" "v1.0"
         Mooshed-together text parts "1.0rc3"
     """
-    
+
     def __init__(self,
         value:typing.Optional[VersionCompatible],
         experimental:typing.Optional[bool]=None):
@@ -45,13 +46,15 @@ class Version:
         self.experimental=False
         if value is not None:
             self.assign(value,experimental)
-        
+
     def assign(self,
         value:VersionCompatible,
         experimental:typing.Optional[bool]=None):
-        """ """
+        """
+        Assign the value of this version
+        """
         if isinstance(value,Version):
-            self._segments=value._segments
+            self._segments=list(value._segments) # pylint: disable=protected-access # noqa: E501
             self.experimental=value.experimental
         else:
             self._segments=[]
@@ -69,27 +72,43 @@ class Version:
                     self._segments.append(segment)
         if experimental is not None:
             self.experimental=experimental
-            
+
     @property
     def release(self)->bool:
+        """
+        Gets the release number portion of the version
+        """
         return not self.experimental
     @property
     def preRelease(self)->bool:
+        """
+        Gets the pre-release (pre) indication
+        from the version
+        """
         return self.experimental
     @property
     def releaseCandidate(self)->bool:
+        """
+        Gets the release candidate (rc) from the version
+        """
         for seg in self._segments:
             if seg=='rc':
                 return True
         return False
     @property
     def alpha(self)->bool:
+        """
+        Gets the alpha (a) indicator from the version
+        """
         for seg in self._segments:
             if seg in ('a','alpha'):
                 return True
         return False
     @property
     def beta(self)->bool:
+        """
+        Gets the beta (b) indicator from the version
+        """
         for seg in self._segments:
             if seg in ('b','beta'):
                 return True
@@ -97,7 +116,8 @@ class Version:
 
     def __seg_score__(self,seg:typing.Union[int,str])->float:
         """
-        scores an int segment as its value, pro-rates a text value as a partial float
+        scores an int segment as its value,
+        pro-rates a text value as a partial float
         """
         if isinstance(seg,int):
             return seg
@@ -109,7 +129,10 @@ class Version:
             return -0.75
         return -0.9 # unknown
 
-    def __seg_cmp__(self,seg1:typing.Union[int,str],seg2:typing.Union[int,str])->float:
+    def __seg_cmp__(self,
+        seg1:typing.Union[int,str],
+        seg2:typing.Union[int,str]
+        )->float:
         """
         scores two aligned version segments against eachother
 
@@ -165,7 +188,11 @@ class Version:
         if not isinstance(other,(str,Version,float)):
             return False
         other=asVersion(other)
-        for us,them in zip_longest(self._segments,other._segments,fillvalue=0):
+        for us,them in zip_longest(
+            self._segments,
+            other._segments, # pylint: disable=protected-access
+            fillvalue=0):
+            #
             if us==them:
                 continue
             if self.__seg_cmp__(us,them)>0:
@@ -183,7 +210,7 @@ class Version:
             elif ss>0:
                 return False
         return True # they are equal
-    
+
     def __ge__(self,other:typing.Any)->bool:
         if not isinstance(other,(str,Version,float)):
             return False
@@ -195,7 +222,7 @@ class Version:
             elif ss<0:
                 return False
         return True # they are equal
-    
+
     def __repr__(self):
         """
         Joins int segments with '.' and int-text or text-text segmens with ' '
@@ -217,19 +244,19 @@ class Version:
                 ret.append(seg)
                 lastWasInt=False
         return ''.join(ret)
-    
+
 def asVersion(ver:VersionCompatible):
     """
     Always return ver as a version.
-    
+
     If it is already one, simply return.
     Otherwise, convert it.
     """
     if isinstance(ver,Version):
         return ver
     return Version(ver)
-    
-        
+
+
 class VersionRange:
     """
     A range of versions
@@ -250,7 +277,10 @@ class VersionRange:
         Version("1.5") in VersionRange("1.0..2.0")
     """
 
-    def __init__(self,start:VersionCompatible,end:typing.Optional[VersionCompatible]=None):
+    def __init__(self,
+        start:VersionCompatible,
+        end:typing.Optional[VersionCompatible]=None):
+        """ """
         if isinstance(start,str):
             parts=start.replace('...','-').replace('..','-').split('-')
             start=parts[0]
@@ -263,7 +293,7 @@ class VersionRange:
             end=asVersion(end)
         self.start:Version=start
         self.end:Version=end
- 
+
     def contains(self,version:VersionCompatible)->bool:
         """
         Does this range contain the given version (inclusive)
@@ -283,7 +313,7 @@ class VersionRange:
 class VersioningScheme:
     r"""
     The rules used for creating/interpreting version numbers.
-    
+
     It is based on like your time formatting pattern or whatever.
         %R - release version
         %P - pre-release version
@@ -300,7 +330,6 @@ class VersioningScheme:
     def __init__(self):
         self.pattern='R.R.R.P'
 
-        Version
 
 def evaluateExpression(expression:str)->bool:
     """
