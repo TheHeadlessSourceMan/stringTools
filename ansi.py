@@ -50,13 +50,15 @@ ansi2CSS={
     47:'background-color:white'}
 
 ansiEscapeCodeFinderRe=re.compile(r'\x1b\[(.*?)m')
-def ansiColorToHtml(ansiColoredString:str)->str:
+def ansiColorToHtml(ansiColoredString:typing.Union[str,bytes])->str:
     """
     take a string with ansi color codes and return an html string
 
     NOTE: this html is JUST THE COLORS
     not any curses stuff, fixed-width font, or newline handling
     """
+    if not isinstance(ansiColoredString,str):
+        ansiColoredString=ansiColoredString.decode('utf-8',errors='ignore')
     # make this a list so it gets shared with the child function
     spancount:typing.List[int]=[0]
     currentFG:typing.List[typing.Optional[str]]=[None]
@@ -124,3 +126,29 @@ def ansiColorToHtml(ansiColoredString:str)->str:
         return ''.join(ret)
     result=re.sub(ansiEscapeCodeFinderRe,replaceAnsi,ansiColoredString)
     return result
+
+ansiEscapeCodeSplitterRe=re.compile(
+    r"""\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])""")
+def stripANSI(s:typing.Union[str,bytes])->str:
+    """
+    Strip all ansi color codes from the string
+    """
+    if not isinstance(s,str):
+        s=s.decode('utf-8',errors='ignore')
+    return ansiEscapeCodeSplitterRe.sub('',s)
+
+def splitANSI(s:typing.Union[str,bytes])->typing.Iterable[str]:
+    """
+    Dpliy string and ansi control codes
+
+    :return: [str,code,str,code,...]
+    """
+    if not isinstance(s,str):
+        s=s.decode('utf-8',errors='ignore')
+    last=0
+    for m in ansiEscapeCodeSplitterRe.finditer(s):
+        yield s[last:m.start(0)]
+        yield str(m)
+        last=m.end(0)
+    if len(s)<last+1:
+        yield s[last:]
