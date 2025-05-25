@@ -170,6 +170,7 @@ class Version:
             if us!=them:
                 return False
         return True
+    __contains__=__eq__
 
     def __lt__(self,other:typing.Any)->bool:
         if not isinstance(other,(str,Version,float)):
@@ -259,7 +260,11 @@ def asVersion(ver:VersionCompatible):
 
 class VersionRange:
     """
-    A range of versions
+    A range of versions.
+
+    NOTE: Versions object can do everything
+    this can and more, so you may want to use
+    that instead.
 
     Can create in a variety of ways:
         VersionRange(Version("1.0"),Version("2.0"))
@@ -267,6 +272,8 @@ class VersionRange:
         VersionRange("1.0..2.0")
         VersionRange("1.0...2.0")
         VersionRange("1.0-2.0")
+        VersionRange("<1.0")
+        VersionRange(">=2.0")
     Or even exact version:
         VersionRange(Version("1.0"))
         VersionRange("1.0")
@@ -278,28 +285,145 @@ class VersionRange:
     """
 
     def __init__(self,
-        start:VersionCompatible,
-        end:typing.Optional[VersionCompatible]=None):
+        start:typing.Optional[VersionCompatible]=None,
+        end:typing.Optional[VersionCompatible]=None,
+        startInclusive:bool=True,
+        endInclusive:bool=True):
         """ """
+        self.start:typing.Optional[VersionCompatible]=None
+        self.end:typing.Optional[VersionCompatible]=None
+        self.startInclusive:bool=True
+        self.endInclusive:bool=True
+        self.assign(start,end,startInclusive,endInclusive)
+
+    def assign(self,
+        start:typing.Optional[VersionCompatible]=None,
+        end:typing.Optional[VersionCompatible]=None,
+        startInclusive:bool=True,
+        endInclusive:bool=True):
+        """
+        Assign this version
+        """
+        self.startInclusive=startInclusive
+        self.endInclusive=endInclusive
         if isinstance(start,str):
-            parts=start.replace('...','-').replace('..','-').split('-')
-            start=parts[0]
-            if end is None:
-                end=parts[-1]
-        start=asVersion(start)
-        if end is None:
-            end=start
+            self.assignString(start)
         else:
-            end=asVersion(end)
-        self.start:Version=start
-        self.end:Version=end
+            start=asVersion(start)
+            if end is None:
+                end=start
+            else:
+                end=asVersion(end)
+            self.start:Version=start
+            self.end:Version=end
+
+    def assignString(self,versionStr:str)->None:
+        """
+        Assign this version from a string
+        """
+        versionStr=versionStr.replace(' ','')
+        if not versionStr:
+            self.start=None
+            self.end=None
+            return
+        if versionStr[0]=='<':
+            self.start=None
+            if versionStr[1]=='=':
+                self.endInclusive=True
+                self.end=Version(versionStr[1:])
+            else:
+                self.endInclusive=False
+                self.end=Version(versionStr[1:])
+        elif versionStr[0]=='>':
+            self.end=None
+            if versionStr[1]=='=':
+                self.startInclusive=True
+                self.start=Version(versionStr[1:])
+            else:
+                self.startInclusive=False
+                self.start=Version(versionStr[1:])
+        else: # treat it as a proper range
+            self.startInclusive=True
+            self.endInclusive=True
+            parts=versionStr.replace('...','-').replace('..','-').split('-')
+            self.start=Version(parts[0])
+            self.end=Version(parts[-1])
+
+    def contains(self,version:VersionCompatible)->bool:
+        """
+        Does this range contain the given version?
+        """
+        version=asVersion(version)
+        if self.start is not None:
+            if self.end is not None:
+                if self.startInclusive:
+                    if self.endInclusive:
+                        return version>=self.start and version<=self.end
+                    return version>=self.start and version<self.end
+                if self.endInclusive:
+                    return version>self.start and version<=self.end
+                return version>self.start and version<self.end
+            if self.startInclusive:
+                return version>=self.start
+            return version>self.start
+        if self.end is not None:
+            if self.endInclusive:
+                return version<=self.end
+            return version<self.end
+        return False # No start or end
+
+    def __contains__(self,version:VersionCompatible)->bool:
+        """
+        Implement the "in" operator, eg:
+
+        Version("1.0.5") in VersionRange("1.0..2.0")
+        """
+        return self.contains(version)
+
+
+class Versions:
+    """
+    Any set of versions or ranges
+
+    Supports all of the following:
+        "1.0"
+        "<1.0" "<=1.0"
+        ">1.0" ">=1.0"
+        "1.0, 2.0"
+        "1.3, >=2.0"
+        and any combination thereof
+    """
+    def __init__(self,
+        versionString:str):
+        """ """
+        self.assign(versionString)
+
+    def assign(self,
+        versionString:str):
+        """
+        Assign value of this object
+
+        Supports all of the following:
+            "1.0"
+            "<1.0" "<=1.0"
+            ">1.0" ">=1.0"
+            "1.0, 2.0"
+            "1.3, >=2.0"
+            and any combination thereof
+        """
+        parts=versionString.replace(' ','').split(',')
+        self._parts=[]
+        for part in parts:
+            self._parts.append(VersionRange(part))
 
     def contains(self,version:VersionCompatible)->bool:
         """
         Does this range contain the given version (inclusive)
         """
-        version=asVersion(version)
-        return version>=self.start and version<=self.end
+        for part in self._parts:
+            if part.contains(version):
+                return True
+        return False
 
     def __contains__(self,version:VersionCompatible)->bool:
         """
