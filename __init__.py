@@ -6,3 +6,4 @@ from .quot import *
 from .versions import *
 from .robustStr2Html import *
 from .commandline import *
+from .boolStrings import *
