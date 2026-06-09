@@ -7,7 +7,10 @@ Tools for parsing and printing text fixed-with tables, eg
 """
 import typing
 import re
-import pandas as pd
+try:
+    import pandas as pd
+except ImportError:
+    pass
 splitWithWhitespace=re.compile(r'''([^\s]+)[\s]+''')
 
 
