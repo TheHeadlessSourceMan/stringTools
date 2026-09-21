@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "paths"
+version = "0.0.0"
+description = "General-purpose string tools."
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+test = [
+    "coverage",
+]
+
+[tool.setuptools]
+package-dir = {"stringTools" = "."}
+packages = ["stringTools"]
+
+[tool.setuptools.package-data]
+paths = ["py.typed"]
+
+[tool.coverage.run]
+branch = true
+source = ["stringTools"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
