@@ -8,6 +8,8 @@ MatchLike=typing.Union[str,typing.Pattern[str],
     typing.Iterable[typing.Union[str,typing.Pattern[str]]]]
 MatchStringAs=typing.Literal["exact","contains","glob","regex"]
 
+T=typing.TypeVar("T")
+
 
 def objectsWithMember[T](
     memberName:str,
@@ -88,6 +90,9 @@ def tupleStringFilter[T](
     """
     Quickly and easily filter a list of [(string,value)] tuples
     based on a match string or pattern.
+
+    NOTE: for typing, only the rh type (T) of the tuple is specified,
+    since the lh type is always str.
     """
     if match is None:
         return src
@@ -105,48 +110,48 @@ def tupleStringFilter[T](
             if matchStringAs=="exact":
                 if ignorecase:
                     if k.lower()==match.lower():
-                        yield v
+                        yield k,v
                 else:
                     if k==match:
-                        yield v
+                        yield k,v
             elif matchStringAs=="contains":
                 if ignorecase:
                     if match.lower() in k.lower():
-                        yield v
+                        yield k,v
                 else:
                     if match in k:
-                        yield v
+                        yield k,v
             elif matchStringAs=="glob":
                 import fnmatch
                 if fnmatch.fnmatch(k,match):
-                    yield v
+                    yield k,v
         elif isinstance(match,typing.Pattern):
             if match.match(k):
-                yield v
+                yield k,v
         elif hasattr(match,"__iter__"):
             for match1 in match:
                 if isinstance(match1,str):
                     if matchStringAs=="exact":
                         if ignorecase:
                             if match1.lower()==k.lower():
-                                yield v
+                                yield k,v
                                 break
                         else:
                             if match1==k:
-                                yield v
+                                yield k,v
                                 break
                     elif matchStringAs=="contains":
                         if ignorecase:
                             if match1.lower() in k.lower():
-                                yield v
+                                yield k,v
                                 break
                         else:
                             if match1 in k:
-                                yield v
+                                yield k,v
                                 break
                 elif isinstance(match1,typing.Pattern):
                     if match1.match(k):
-                        yield v
+                        yield k,v
                         break
 
 
