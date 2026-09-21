@@ -3,7 +3,7 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "paths"
+name = "stringTools"
 version = "0.0.0"
 description = "General-purpose string tools."
 readme = "README.md"
